@@ -39,7 +39,7 @@ def train(input_image_path, target_class, output_folder='output', batch_size=1, 
     input_layer = inception_v3.layers[0].input
     output_layer = inception_v3.layers[-1].output
 
-    loss = output_layer(0, target_class)
+    loss = output_layer[0, target_class]
     gradient = k.gradients(loss, input_layer)[0]
     optimize_gradient = k.function([input_layer, k.learning_phase()], [gradient, loss])
 
