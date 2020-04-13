@@ -7,7 +7,7 @@ from keras_preprocessing import image
 from keras.applications.inception_v3 import InceptionV3, decode_predictions
 
 
-def train(input_image_path, target_class, output_folder='output', batch_size=1, perturbation=.01):
+def train(input_image_path, output_image_path, target_class, batch_size=1, perturbation=.01):
     inception_v3 = InceptionV3()
 
     # Imprimir un resumen del modelo convolucional InceptionV3.
@@ -51,31 +51,29 @@ def train(input_image_path, target_class, output_folder='output', batch_size=1, 
     cost = .0
 
     while cost < .95:
-        acumulated_gradient, cost = optimize_gradient([adversarial, 0])
-        adversarial += acumulated_gradient
+        gr, cost = optimize_gradient([adversarial, 0]) # k.learning_phase = 0
+        adversarial += gr
 
         # Se restringe la actualización de píxeles para evitar perturbaciones.
-        adversarial = np.clip(adversarial, a_min=min_perturbation, a_max=max_perturbation)
-        adversarial = np.clip(adversarial, a_min=-1, a_max=1)
+        adversarial = np.clip(adversarial, min_perturbation, max_perturbation)
+        adversarial = np.clip(adversarial, -1, 1)
 
         # Imprime el costo actual.
         print(f'Target cost: {cost}')
 
     # Se da el formato 0-255 al resultado.
-    image_adversarial = np.copy(adversarial)
-    image_adversarial /= 2
-    image_adversarial += .5
-    image_adversarial * 255
-    image_output = image_adversarial[0].astype(np.uint8)
+    adversarial /= 2
+    adversarial += .5
+    adversarial *= 255
 
     # Se imprime el resultado de la imagen de salida.
-    # plt.imshow(image_output)
+    # plt.imshow(adversarial[0].astype(np.uint8))
     # plt.show()
 
     # Se guarda la imagen en la carpeta de salida.
 
-    im = Image.fromarray(image_output)
-    im.save(f'{output_folder}/output.png')
+    im = Image.fromarray(adversarial[0].astype(np.uint8))
+    im.save(output_image_path)
 
 
 def test(input_image_path, batch_size=1):
@@ -97,11 +95,13 @@ def test(input_image_path, batch_size=1):
     # Se realiza la predicción utilizando el modelo InceptionV3.
     y = inception_v3.predict(x)
 
-    print(decode_predictions(y))
+    # Se obtiene el resultado y se imprime en pantalla.
+    result = decode_predictions(y)[0][0]
+    print(f'{result[1]}: ' + '{:.2%}'.format(result[2]))
 
 
 def main():
-    train('cat.jpg', 951)
+    train('cat.jpg', 'output/output.png', 951) # Guardar en png (Recomendado).
 
     # Clasifica la imagen utilizando el modelo InceptionV3.
     # test('output.png')
